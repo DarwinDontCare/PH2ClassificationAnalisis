@@ -12,14 +12,33 @@ def load_ph2_dataset() -> pd.DataFrame:
         path = kagglehub.dataset_download("spacesurfer/ph2-dataset")
         print(f"dataset path: {path}")
 
-        df = pd.read_csv(os.path.join(path, "PH2Dataset", "PH2_dataset.txt"))
+        df_path = os.path.join(path, "PH2Dataset", "PH2_dataset.txt")
+
+        df = pd.read_csv(df_path,
+            sep=r'\s*\|\|\s*',  
+            engine='python',    
+            skiprows=[2],       
+            skipinitialspace=True)
+    
+        if 'Unnamed: 0' in df.columns:
+            df.drop(columns=['Unnamed: 0'], inplace=True)
+
+        df.dropna(axis=1, how='all', inplace=True)
+        df.columns = [col.strip() for col in df.columns]
+
+        df = df[df['Name'].astype(str).str.contains('IMD', na=False)].reset_index(drop=True)
+        df['Name'] = df['Name'].str.strip()
+
         df["Image"] = [""] * len(df["Name"])
         df["Mask"] = [""] * len(df["Name"])
 
         images_path = os.path.join(path, "PH2Dataset", "PH2 Dataset images")
         for i, name in enumerate(df["Name"]):
-            df.loc[i, "Image"] = os.path.join(images_path, name, f"{name}_Dermoscopic_Image", f"{name}.bmp")
-            df.loc[i, "Mask"] = os.path.join(images_path, name, f"{name}_lesion", f"{name}_lesion.bmp")
+            if isinstance(name, str) and name != '':
+                df.loc[i, "Image"] = os.path.join(images_path, name, f"{name}_Dermoscopic_Image", f"{name}.bmp")
+                df.loc[i, "Mask"] = os.path.join(images_path, name, f"{name}_lesion", f"{name}_lesion.bmp")
+
+        df["Classification"] = pd.to_numeric(df["Clinical Diagnosis"], errors='coerce').astype(int)
 
         df.to_pickle(dataset_file_path)
         return df
