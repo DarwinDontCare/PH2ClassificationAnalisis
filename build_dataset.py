@@ -16,14 +16,14 @@ def load_ph2_dataset() -> pd.DataFrame:
 
         df = pd.read_csv(df_path,
             sep=r'\s*\|\|\s*',  
-            engine='python',    
-            skiprows=[2],       
+            engine='python',           
             skipinitialspace=True)
     
         if 'Unnamed: 0' in df.columns:
             df.drop(columns=['Unnamed: 0'], inplace=True)
 
         df.dropna(axis=1, how='all', inplace=True)
+        print("samples: ", df.value_counts("Name"))
         df.columns = [col.strip() for col in df.columns]
 
         df = df[df['Name'].astype(str).str.contains('IMD', na=False)].reset_index(drop=True)
